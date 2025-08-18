@@ -1,120 +1,188 @@
-# Agricultural AI Chatbot
+# 🌱 KrishiMitraAI
 
-An intelligent agricultural assistant that helps farmers make informed decisions about crop selling, market timing, and agricultural practices using AI-powered analysis and real-time market data.
+**An Agentic AI Advisor for Agriculture**
 
-## Features
+KrishiMitraAI is an **AI-powered agricultural assistant** that helps farmers, vendors, and other stakeholders make **timely, confident, and informed decisions** about crop selling, storage, and market conditions.
 
-### Core Functionality
-- **Intelligent Chat Interface**: Text and voice-based interaction with AI agricultural advisor
-- **Multi-language Support**: Hindi and English language support with automatic translation
-- **Real-time Market Analysis**: Live price forecasting using historical market data
-- **News Sentiment Analysis**: Agricultural news sentiment analysis to gauge market conditions
-- **Spoilage Risk Assessment**: Calculate crop spoilage timeline based on storage conditions
-- **Personalized Recommendations**: Tailored advice based on user context (crop type, quantity, location, quality grade)
+Unlike a traditional chatbot, KrishiMitraAI uses a **multi-agent pipeline** that combines forecasting, sentiment analysis, and spoilage modeling before responding. Each answer is **grounded in data**, with **reasoning and confidence scores explained transparently**.
 
-### AI Models Integration
-- **Google Gemini**: Primary AI model for natural language processing and generation
-- **Prophet**: Advanced time series forecasting for price predictions
-- **Custom Market Intelligence**: Fusion of multiple data sources for comprehensive analysis
+---
 
-### User Types Supported
-- **Farmers (Sellers)**: Crop selling optimization and market timing advice
-- **Vendors (Buyers/Sellers)**: Market analysis and trading recommendations
-- **General Users**: Agricultural information and guidance
+## 🌱 Overview
 
-## Tech Stack
+Agriculture is one of India’s most critical sectors, where **small decisions carry big risks**. Farmers routinely face questions like:
 
-### Backend
-- **Flask**: Web framework for API endpoints
-- **Python 3.8+**: Core programming language
-- **Google Generative AI**: Gemini API integration
-- **pandas/numpy**: Data processing and analysis
-- **Prophet**: Time series forecasting
-- **NewsAPI**: Real-time agricultural news integration
-- **deep-translator**: Multi-language support
+- *When should I sell my crop?*
+- *How long can I safely store it?*
+- *Will market conditions improve next week?*
+- *What government schemes or policies can help me?*
 
-### Frontend
-- **React**: Modern web framework with hooks
-- **Lucide React**: Icon components
-- **MediaRecorder API**: Voice recording functionality
-- **Fetch API**: Backend communication
+Our solution is designed as a **human-aligned agentic AI advisor** that:
 
-## Installation
+- Understands natural, multilingual farmer queries (Hindi + English).
+- Uses **specialized agents** for price forecasting, spoilage risk estimation, and market sentiment analysis.
+- Fuses insights into reliable, context-aware recommendations.
+- Provides **text and voice-based interfaces** for inclusivity.
+
+---
+
+## 🔑 Key Features
+
+### Core Agentic Capabilities
+
+- **Conversational Agricultural Advisor**
+    - Text + voice interaction with AI
+    - Multilingual (Hindi/English) with automatic translation
+- **Agentic Decision Fusion**
+    - Price forecaster (Prophet-based time series agent)
+    - Spoilage risk agent (storage condition modeling)
+    - News sentiment agent (real-time NewsAPI integration)
+    - Supervisor agent that synthesizes signals into one clear recommendation
+
+### Intelligence Layers
+
+- **Real-Time Market Analysis**
+    - 15-day price forecasts using Prophet & exponential smoothing
+    - Market volatility tracking
+- **News Sentiment Analysis**
+    - Extracts themes from agricultural news
+    - Detects bullish/bearish/neutral signals
+- **Spoilage Risk Assessment**
+    - Shelf-life estimation per crop
+    - Storage condition impact modeling (temperature, humidity)
+    - Quantified risk score (0–1 scale)
+
+### Personalization
+
+- Tailored advice based on user context: crop type, location, quality grade, quantity, and harvest timeline.
+- Support for multiple user personas:
+    - **Farmers (sellers)** → when/where to sell crops
+    - **Vendors (buyers/sellers)** → trade intelligence
+    - **General users** → agricultural information
+    - **Future roadmap** → lenders, policymakers, cooperatives
+
+---
+
+## 📊 Example Capabilities
+
+1. **Price Forecasting**
+    - Predicts 15-day price trends using historical market data.
+    - Assesses volatility and market stability.
+2. **News & Weather Sentiment Analysis**
+    - Fetches real-time agricultural news and IMD weather updates.
+    - Scores sentiment (bullish/bearish/neutral).
+    - Explains the reasoning (e.g., “Government subsidy expected → bullish outlook”).
+3. **Spoilage Risk Assessment**
+    - Estimates shelf life by crop type, storage temperature, and humidity.
+    - Provides a **risk score (0–1)** and storage advice.
+4. **Grounded Chat Response**
+    - Example:
+        
+        > “Based on price forecast (+7% in 10 days), low spoilage risk (0.2), and bullish sentiment from market news, it is advisable to wait before selling. Confidence: 0.78”
+        > 
+
+---
+
+## 🧠 Tech Stack
+
+**Backend**
+
+- Flask (API framework)
+- Python 3.8+
+- Google Generative AI (Gemini)
+- Prophet + statsmodels (time series forecasting)
+- pandas/numpy (data processing)
+- NewsAPI (real-time news integration)
+- deep-translator (multilingual support)
+
+**Frontend**
+
+- React (hooks-based UI)
+- Lucide React (icons)
+- MediaRecorder API (voice input)
+- Fetch API (backend integration)
+
+---
+
+## ⚡ Installation
 
 ### Prerequisites
-- Python 3.8 or higher
-- Node.js 16 or higher
-- npm or yarn package manager
+
+- Python 3.8+
+- Node.js 16+
+- npm or yarn
 
 ### Backend Setup
 
-1. **Clone and setup environment**
 ```bash
 git clone <repository-url>
 cd agricultural-ai-chatbot
 python -m venv agri_env
-source agri_env/bin/activate  # Windows: agri_env\Scripts\activate
+source agri_env/bin/activate   # Windows: agri_env\Scripts\activate
+pip install -r requirements.txt
+
 ```
 
-2. **Install dependencies**
-```bash
-pip install flask flask-cors google-generativeai pandas numpy
-pip install requests deep-translator python-dotenv prophet statsmodels
-```
-
-3. **Configure environment variables**
 Create `.env` file:
-```env
+
+```
 GEMINI_API_KEY=your_gemini_api_key_here
 NEWSAPI_KEY=your_newsapi_key_here
+
 ```
 
 ### Frontend Setup
 
-1. **Create React application**
 ```bash
-npx create-react-app frontend
 cd frontend
-npm install lucide-react
+npm install
+npm start
+
 ```
 
-2. **Configure proxy**
-Add to `package.json`:
-```json
-"proxy": "http://localhost:5000"
-```
+---
 
-3. **Replace App.js** with provided App.jsx content
+## 🚀 Usage
 
-## Usage
+**Start Backend**
 
-### Starting the Application
-
-1. **Start Backend Server**
 ```bash
 python app.py
-```
-Server runs on `http://localhost:5000`
 
-2. **Start Frontend**
+```
+
+Runs at `http://localhost:5000`
+
+**Start Frontend**
+
 ```bash
 cd frontend
 npm start
+
 ```
-Application available at `http://localhost:3000`
 
-### API Endpoints
+Runs at `http://localhost:3000`
 
-#### Text Chat
-```bash
+---
+
+## 📡 API Endpoints
+
+**Text Chat**
+
+```
 POST /api/chat
 Content-Type: application/json
 
+```
+
+Example Payload:
+
+```json
 {
   "prompt": "Should I sell my wheat now?",
   "model": "gemini-1.5-flash",
   "userContext": {
-    "name": "Farmer Name",
+    "name": "Farmer",
     "cropType": "wheat",
     "quantity": "100",
     "qualityGrade": "A",
@@ -122,134 +190,292 @@ Content-Type: application/json
     "spoilageDate": "2024-09-15"
   }
 }
+
 ```
 
-#### Audio Chat
-```bash
+**Audio Chat**
+
+```
 POST /api/audio-chat
 Content-Type: multipart/form-data
 
+```
+
 Form Data:
-- audio: [audio file]
-- model: "gemini-1.5-flash"
-- userContext: [JSON string]
+
+- `audio`: [file]
+- `model`: gemini-1.5-flash
+- `userContext`: [JSON string]
+
+---
+
+## 📊 Data Sources
+
+- [Agmarknet](https://agmarknet.gov.in/) → market prices
+- [IMD](https://mausam.imd.gov.in/) → weather data
+- [ICAR](https://icar.org.in/) → crop & soil guidelines
+- [Press Information Bureau](https://pib.gov.in/) → government policies
+- **Sample CSV** included (`market_data_csv.csv`) for demo purposes
+
+---
+
+## 🔮 Roadmap
+
+- Expand to **SMS/IVR/WhatsApp interfaces** for low-connectivity regions
+- Retrieval-augmented generation (RAG) to ground LLM answers in factual agri datasets
+- Confidence scoring + source citations for trust & explainability
+- Multi-agent orchestration (market, weather, soil, finance)
+
+---
+
+## 🏆 Why This Matters
+
+This project demonstrates how **agentic AI can transform agriculture**:
+
+- Farmers gain confidence to sell at the right time.
+- Vendors and markets get transparency.
+- Policymakers and lenders can integrate insights.
+
+By combining **AI forecasting, multilingual interaction, and decision fusion**, this solution directly addresses the Launchpad theme of building **agentic AI systems with real-world societal impact**.
+
+---# 🌱 KrishiMitraAI
+
+**An Agentic AI Advisor for Agriculture**
+
+KrishiMitraAI is an **AI-powered agricultural assistant** that helps farmers, vendors, and other stakeholders make **timely, confident, and informed decisions** about crop selling, storage, and market conditions.
+
+Unlike a traditional chatbot, KrishiMitraAI uses a **multi-agent pipeline** that combines forecasting, sentiment analysis, and spoilage modeling before responding. Each answer is **grounded in data**, with **reasoning and confidence scores explained transparently**.
+
+---
+
+## 🌱 Overview
+
+Agriculture is one of India’s most critical sectors, where **small decisions carry big risks**. Farmers routinely face questions like:
+
+- *When should I sell my crop?*
+- *How long can I safely store it?*
+- *Will market conditions improve next week?*
+- *What government schemes or policies can help me?*
+
+Our solution is designed as a **human-aligned agentic AI advisor** that:
+
+- Understands natural, multilingual farmer queries (Hindi + English).
+- Uses **specialized agents** for price forecasting, spoilage risk estimation, and market sentiment analysis.
+- Fuses insights into reliable, context-aware recommendations.
+- Provides **text and voice-based interfaces** for inclusivity.
+
+---
+
+## 🔑 Key Features
+
+### Core Agentic Capabilities
+
+- **Conversational Agricultural Advisor**
+    - Text + voice interaction with AI
+    - Multilingual (Hindi/English) with automatic translation
+- **Agentic Decision Fusion**
+    - Price forecaster (Prophet-based time series agent)
+    - Spoilage risk agent (storage condition modeling)
+    - News sentiment agent (real-time NewsAPI integration)
+    - Supervisor agent that synthesizes signals into one clear recommendation
+
+### Intelligence Layers
+
+- **Real-Time Market Analysis**
+    - 15-day price forecasts using Prophet & exponential smoothing
+    - Market volatility tracking
+- **News Sentiment Analysis**
+    - Extracts themes from agricultural news
+    - Detects bullish/bearish/neutral signals
+- **Spoilage Risk Assessment**
+    - Shelf-life estimation per crop
+    - Storage condition impact modeling (temperature, humidity)
+    - Quantified risk score (0–1 scale)
+
+### Personalization
+
+- Tailored advice based on user context: crop type, location, quality grade, quantity, and harvest timeline.
+- Support for multiple user personas:
+    - **Farmers (sellers)** → when/where to sell crops
+    - **Vendors (buyers/sellers)** → trade intelligence
+    - **General users** → agricultural information
+    - **Future roadmap** → lenders, policymakers, cooperatives
+
+---
+
+## 📊 Example Capabilities
+
+1. **Price Forecasting**
+    - Predicts 15-day price trends using historical market data.
+    - Assesses volatility and market stability.
+2. **News & Weather Sentiment Analysis**
+    - Fetches real-time agricultural news and IMD weather updates.
+    - Scores sentiment (bullish/bearish/neutral).
+    - Explains the reasoning (e.g., “Government subsidy expected → bullish outlook”).
+3. **Spoilage Risk Assessment**
+    - Estimates shelf life by crop type, storage temperature, and humidity.
+    - Provides a **risk score (0–1)** and storage advice.
+4. **Grounded Chat Response**
+    - Example:
+        
+        > “Based on price forecast (+7% in 10 days), low spoilage risk (0.2), and bullish sentiment from market news, it is advisable to wait before selling. Confidence: 0.78”
+        > 
+
+---
+
+## 🧠 Tech Stack
+
+**Backend**
+
+- Flask (API framework)
+- Python 3.8+
+- Google Generative AI (Gemini)
+- Prophet + statsmodels (time series forecasting)
+- pandas/numpy (data processing)
+- NewsAPI (real-time news integration)
+- deep-translator (multilingual support)
+
+**Frontend**
+
+- React (hooks-based UI)
+- Lucide React (icons)
+- MediaRecorder API (voice input)
+- Fetch API (backend integration)
+
+---
+
+## ⚡ Installation
+
+### Prerequisites
+
+- Python 3.8+
+- Node.js 16+
+- npm or yarn
+
+### Backend Setup
+
+```bash
+git clone <repository-url>
+cd agricultural-ai-chatbot
+python -m venv agri_env
+source agri_env/bin/activate   # Windows: agri_env\Scripts\activate
+pip install -r requirements.txt
+
 ```
 
-## Configuration
+Create `.env` file:
 
-### Market Data Format
-CSV file should contain:
-- `date`: YYYY-MM-DD format
-- `commodity`: Crop name (wheat, rice, tomato)
-- `price`: Numeric price value
-- `location`: Geographic location
-- `unit`: Price unit (per quintal, per kg)
-
-### Supported Crops
-- Wheat
-- Rice  
-- Tomato
-- Onion
-- Potato
-- Sugarcane
-- Other common crops (extensible)
-
-### Quality Grades
-- A: Premium quality
-- B: Good quality  
-- C: Average quality
-- D: Below average quality
-
-## Features in Detail
-
-### Price Forecasting
-- Historical data analysis using Prophet and ExponentialSmoothing
-- 15-day price predictions
-- Trend analysis (increasing/decreasing/stable)
-- Market volatility assessment
-
-### Spoilage Risk Calculation
-- Crop-specific shelf life estimation
-- Storage condition impact (temperature, humidity)
-- Time since harvest consideration
-- Risk score calculation (0-1 scale)
-
-### News Sentiment Analysis
-- Real-time agricultural news fetching
-- Sentiment scoring for market impact
-- Key theme extraction
-- Market signal identification (bullish/bearish/neutral)
-
-### Decision Fusion Engine
-- Multi-factor recommendation system
-- Price forecast integration
-- Spoilage risk consideration
-- Market sentiment analysis
-- Storage cost calculations
-- Alternative market suggestions
-
-## Customization
-
-### Adding New Crops
-1. Update `BASE_SHELF_LIFE` in `model_service.py`
-2. Add crop-specific data to CSV files
-3. Update market data sources
-
-### Extending AI Models
-1. Add new model configurations in backend
-2. Update model selection in frontend
-3. Implement model-specific API calls
-
-### Language Support
-- Modify language detection in `app.py`
-- Add new language codes to translation service
-- Update UI text for internationalization
-
-## Development
-
-### Project Structure
 ```
-agricultural-ai-chatbot/
-├── app.py                    # Flask application
-├── ai_model_service.py       # Enhanced AI service with news analysis
-├── model_service.py          # Core ML models and forecasting
-├── market_data_csv.csv       # Sample market data
-├── .env                      # Environment variables
-├── requirements.txt          # Python dependencies
-└── frontend/
-    ├── src/
-    │   └── App.jsx          # React main component
-    └── package.json         # Node.js dependencies
+GEMINI_API_KEY=your_gemini_api_key_here
+NEWSAPI_KEY=your_newsapi_key_here
+
 ```
-## API Keys Required
 
-### Google Gemini API
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Create new project and generate API key
-3. Add to `.env` as `GEMINI_API_KEY`
+### Frontend Setup
 
-### NewsAPI (Optional)
-1. Register at [NewsAPI.org](https://newsapi.org/)
-2. Get free API key (1000 requests/day)
-3. Add to `.env` as `NEWSAPI_KEY`
+```bash
+cd frontend
+npm install
+npm start
 
-## Troubleshooting
+```
 
-### Common Issues
-- **CORS errors**: Verify Flask-CORS configuration and proxy settings
-- **API key errors**: Check `.env` file location and key validity
-- **Audio not working**: Ensure HTTPS/localhost and browser permissions
-- **CSV loading fails**: Verify file format and column names
-- **Missing dependencies**: Run `pip install -r requirements.txt`
+---
 
-## License
+## 🚀 Usage
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+**Start Backend**
 
-## Acknowledgments
+```bash
+python app.py
 
-- Google Gemini AI for natural language processing
-- NewsAPI for real-time agricultural news
-- Prophet library for time series forecasting
-- React and Flask communities for frameworks
-- Agricultural domain experts for market insights
+```
+
+Runs at `http://localhost:5000`
+
+**Start Frontend**
+
+```bash
+cd frontend
+npm start
+
+```
+
+Runs at `http://localhost:3000`
+
+---
+
+## 📡 API Endpoints
+
+**Text Chat**
+
+```
+POST /api/chat
+Content-Type: application/json
+
+```
+
+Example Payload:
+
+```json
+{
+  "prompt": "Should I sell my wheat now?",
+  "model": "gemini-1.5-flash",
+  "userContext": {
+    "name": "Farmer",
+    "cropType": "wheat",
+    "quantity": "100",
+    "qualityGrade": "A",
+    "farmerLocation": "110001",
+    "spoilageDate": "2024-09-15"
+  }
+}
+
+```
+
+**Audio Chat**
+
+```
+POST /api/audio-chat
+Content-Type: multipart/form-data
+
+```
+
+Form Data:
+
+- `audio`: [file]
+- `model`: gemini-1.5-flash
+- `userContext`: [JSON string]
+
+---
+
+## 📊 Data Sources
+
+- [Agmarknet](https://agmarknet.gov.in/) → market prices
+- [IMD](https://mausam.imd.gov.in/) → weather data
+- [ICAR](https://icar.org.in/) → crop & soil guidelines
+- [Press Information Bureau](https://pib.gov.in/) → government policies
+- **Sample CSV** included (`market_data_csv.csv`) for demo purposes
+
+---
+
+## 🔮 Roadmap
+
+- Expand to **SMS/IVR/WhatsApp interfaces** for low-connectivity regions
+- Retrieval-augmented generation (RAG) to ground LLM answers in factual agri datasets
+- Confidence scoring + source citations for trust & explainability
+- Multi-agent orchestration (market, weather, soil, finance)
+
+---
+
+## 🏆 Why This Matters
+
+This project demonstrates how **agentic AI can transform agriculture**:
+
+- Farmers gain confidence to sell at the right time.
+- Vendors and markets get transparency.
+- Policymakers and lenders can integrate insights.
+
+By combining **AI forecasting, multilingual interaction, and decision fusion**, this solution directly addresses the Launchpad theme of building **agentic AI systems with real-world societal impact**.
+
+---
