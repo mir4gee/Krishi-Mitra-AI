@@ -221,13 +221,6 @@ agricultural-ai-chatbot/
     │   └── App.jsx          # React main component
     └── package.json         # Node.js dependencies
 ```
-
-### Testing
-- Backend API testing with curl or Postman
-- Frontend testing through browser interface
-- Audio functionality requires HTTPS or localhost
-- CSV data validation and loading tests
-
 ## API Keys Required
 
 ### Google Gemini API
@@ -248,18 +241,6 @@ agricultural-ai-chatbot/
 - **Audio not working**: Ensure HTTPS/localhost and browser permissions
 - **CSV loading fails**: Verify file format and column names
 - **Missing dependencies**: Run `pip install -r requirements.txt`
-
-### Debug Mode
-- Enable Flask debug mode: `app.run(debug=True)`
-- Check browser developer console for frontend errors
-- Monitor network requests for API communication issues
-
-## Contributing
-
-1. Fork the repository
-2. Create feature branch
-3. Make changes with tests
-4. Submit pull request with detailed description
 
 ## License
 
