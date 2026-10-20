@@ -1,6 +1,7 @@
 import os
 import math
 import json
+import logging
 import datetime as dt
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Tuple
@@ -9,7 +10,8 @@ import numpy as np
 import pandas as pd
 
 # ---- LLM (Gemini) ----
-import google.generativeai as genai
+from google import genai
+from google.genai import errors, types
 from dateutil import tz
 from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file
@@ -22,72 +24,53 @@ except Exception:
     _HAS_PROPHET = False
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
+log = logging.getLogger(__name__)
 INDIA_TZ = tz.gettz("Asia/Kolkata")
 
 # -----------------------------
 # LLM: Gemini client & helpers
 # -----------------------------
-def make_gemini_client():
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY not set")
-    
-    # Configure the API key
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel('gemini-1.5-flash')
+# Tried in order: free-tier Flash models are often briefly overloaded (503) or rate limited (429).
+GEMINI_MODELS = os.getenv("GEMINI_MODELS", "gemini-3.5-flash,gemini-3.5-flash-lite,gemini-3.8-flash").split(",")
+GEMINI_TIMEOUT_MS = 30_000
 
-def gemini_json(model: genai.GenerativeModel, system_prompt: str, user_prompt: str, schema: Optional[dict] = None):
-    """
-    Calls Gemini and *expects* JSON back. We constrain with an instruction + schema hint.
-    """
-    full_prompt = f"{system_prompt}\n\nUser: {user_prompt}\n\nPlease respond with valid JSON only."
-    
-    try:
-        response = model.generate_content(
-            full_prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.1,
-                top_p=0.8,
-                top_k=40,
-                max_output_tokens=2048,
-            )
-        )
-        text = response.text
-        
+
+class GeminiUnavailable(RuntimeError):
+    """No API key, or every model in GEMINI_MODELS failed."""
+
+
+def make_gemini_client() -> genai.Client:
+    if not os.getenv("GEMINI_API_KEY"):
+        raise GeminiUnavailable("GEMINI_API_KEY not set")
+    return genai.Client(http_options=types.HttpOptions(timeout=GEMINI_TIMEOUT_MS))  # reads GEMINI_API_KEY
+
+
+def _retryable(exc: Exception) -> bool:
+    if isinstance(exc, errors.ServerError):
+        return True
+    return isinstance(exc, errors.ClientError) and exc.code == 429
+
+
+def gemini_generate(client: genai.Client, contents, config: Optional[types.GenerateContentConfig] = None):
+    """generate_content with model fallback; returns the response of the first model that answers."""
+    for i, model in enumerate(GEMINI_MODELS):
         try:
-            return json.loads(text)
-        except json.JSONDecodeError:
-            # Try to extract JSON from the response
-            start = text.find("{")
-            end = text.rfind("}")
-            if start != -1 and end != -1 and end > start:
-                return json.loads(text[start:end+1])
-            raise ValueError(f"Could not parse JSON from response: {text}")
-            
-    except Exception as e:
-        print(f"Gemini JSON error: {e}")
-        return {"error": str(e)}
+            return client.models.generate_content(model=model, contents=contents, config=config)
+        except Exception as exc:
+            if not _retryable(exc) or i == len(GEMINI_MODELS) - 1:
+                raise GeminiUnavailable(f"{model}: {exc}") from exc
+            log.warning("Gemini %s unavailable (%s), trying %s", model, type(exc).__name__, GEMINI_MODELS[i + 1])
 
-def gemini_text(model: genai.GenerativeModel, system_prompt: str, user_prompt: str):
-    """
-    Calls Gemini for text generation
-    """
-    full_prompt = f"{system_prompt}\n\nUser: {user_prompt}"
-    
-    try:
-        response = model.generate_content(
-            full_prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.3,
-                top_p=0.8,
-                top_k=40,
-                max_output_tokens=1024,
-            )
-        )
-        return response.text.strip()
-    except Exception as e:
-        print(f"Gemini text error: {e}")
-        return f"I apologize, but I'm having trouble generating a response right now. Error: {str(e)}"
+
+def gemini_json(client: genai.Client, system_prompt: str, user_prompt: str) -> dict:
+    config = types.GenerateContentConfig(system_instruction=system_prompt, temperature=0.1,
+                                         response_mime_type="application/json")
+    return json.loads(gemini_generate(client, user_prompt, config).text)
+
+
+def gemini_text(client: genai.Client, system_prompt: str, user_prompt: str) -> str:
+    config = types.GenerateContentConfig(system_instruction=system_prompt, temperature=0.3)
+    return gemini_generate(client, user_prompt, config).text.strip()
 
 # -----------------------------
 # Price Forecasting
@@ -118,7 +101,12 @@ class PriceForecaster:
                                                    'price': last}])])
 
         if _HAS_PROPHET:
-            m = Prophet(daily_seasonality=False, weekly_seasonality=True, yearly_seasonality=False)
+            # a day-of-week pattern only exists in daily data; on weekly prices it makes forecasts swing wildly
+            is_daily = df['date'].diff().median() <= pd.Timedelta(days=1)
+            # The defaults keep the trend too stiff for a few months of mandi prices: a price that peaked and
+            # has fallen for weeks was still forecast to rise. Let the trend bend, including in recent weeks.
+            m = Prophet(daily_seasonality=False, weekly_seasonality=bool(is_daily), yearly_seasonality=False,
+                        changepoint_range=0.95, changepoint_prior_scale=0.5)
             train = df.rename(columns={'date': 'ds', 'price': 'y'})
             m.fit(train)
             self._model = m
@@ -142,7 +130,8 @@ class PriceForecaster:
             return fc
         elif self._mode == 'ets':
             fc = self._model.forecast(days_ahead)
-            out = pd.DataFrame({'date': pd.date_range(start=pd.Timestamp.today().normalize() + pd.Timedelta(days=1),
+            # forecast continues from the last observation, like Prophet's future dataframe
+            out = pd.DataFrame({'date': pd.date_range(start=fc.index[0],
                                                       periods=days_ahead, freq='D'),
                                 'predicted_price': np.asarray(fc)})
             return out
@@ -153,13 +142,13 @@ class PriceForecaster:
     def trend_label(series: List[float]) -> str:
         if len(series) < 2:
             return "stable"
-        # simple slope
+        # slope relative to the mean price, so ₹/kg and ₹/quintal crops use the same threshold
         x = np.arange(len(series))
         y = np.array(series)
-        slope = np.polyfit(x, y, 1)[0]
-        if slope > 0.3:
+        slope = np.polyfit(x, y, 1)[0] / np.mean(y)
+        if slope > 0.002:  # > +0.2% per day
             return "increasing"
-        if slope < -0.3:
+        if slope < -0.002:
             return "decreasing"
         return "stable"
 
@@ -206,6 +195,16 @@ def estimate_spoilage_days_left(
     risk = 1.0 if days_left <= 2 else min(1.0, 0.4 + (penalty / 20.0))
     return days_left, round(risk, 2)
 
+def spoilage_from_deadline(spoilage_date: dt.date, today: Optional[dt.date] = None) -> Tuple[int, float]:
+    """
+    For when the farmer already knows the date the stock goes bad.
+    Returns (days_left, risk_score 0..1): risk is 1 within 2 days and falls to 0.1 at 30+ days.
+    """
+    today = today or dt.datetime.now(tz=INDIA_TZ).date()
+    days_left = max(0, (spoilage_date - today).days)
+    risk = 1.0 if days_left <= 2 else max(0.1, 1.0 - (days_left - 2) / 28 * 0.9)
+    return days_left, round(risk, 2)
+
 # -----------------------------
 # Headline Sentiment (optional)
 # -----------------------------
@@ -215,7 +214,7 @@ NEG_KWS = ["bumper crop", "oversupply", "glut", "price fall", "import", "ban", "
 def sentiment_from_headlines(
     headlines: List[str],
     use_gemini: bool = False,
-    model: Optional[genai.GenerativeModel] = None
+    model: Optional[genai.Client] = None
 ) -> float:
     """
     Returns sentiment score in [-1, 1].
@@ -226,9 +225,9 @@ def sentiment_from_headlines(
         user = "Headlines:\n" + "\n".join([f"- {h}" for h in headlines])
         try:
             j = gemini_json(model, sys, user)
-            return float(j.get("score", 0.0))
-        except Exception:
-            pass
+            return max(-1.0, min(1.0, float(j.get("score", 0.0))))
+        except Exception as e:
+            log.warning("Gemini sentiment failed, using keywords: %s", e)
 
     # keyword heuristic fallback
     score = 0.0
@@ -375,42 +374,22 @@ def fuse_decision(
 # -----------------------------
 def run_price_forecast(df_prices: pd.DataFrame, days_ahead: int = 15) -> Dict:
     """
-    df_prices: columns ['date','price'] with recent daily mandi prices for the crop+region.
+    df_prices: columns ['date','price'] with recent mandi prices for the crop+region.
+    Raises ValueError when there is no history to forecast from (never invents prices).
     """
-    try:
-        if df_prices.empty or len(df_prices) < 2:
-            # Return a default trend if no data
-            return {
-                "trend": "stable",
-                "predictions": [
-                    {"date": (pd.Timestamp.now() + pd.Timedelta(days=i)).strftime("%Y-%m-%d"), 
-                     "price": 100.0 + i} 
-                    for i in range(1, days_ahead + 1)
-                ]
-            }
-        
-        forecaster = PriceForecaster().fit(df_prices)
-        fc = forecaster.predict(days_ahead)
-        trend = PriceForecaster.trend_label(fc['predicted_price'].tolist())
-        
-        return {
-            "trend": trend,
-            "predictions": [
-                {"date": d.strftime("%Y-%m-%d"), "price": float(p)}
-                for d, p in zip(fc['date'], fc['predicted_price'])
-            ]
-        }
-    except Exception as e:
-        print(f"Price forecast error: {e}")
-        # Return safe default
-        return {
-            "trend": "stable",
-            "predictions": [
-                {"date": (pd.Timestamp.now() + pd.Timedelta(days=i)).strftime("%Y-%m-%d"), 
-                 "price": 100.0 + i} 
-                for i in range(1, days_ahead + 1)
-            ]
-        }
+    if df_prices.empty or len(df_prices) < 2:
+        raise ValueError("need at least 2 price points to forecast")
+    forecaster = PriceForecaster().fit(df_prices)
+    fc = forecaster.predict(days_ahead)
+    trend = PriceForecaster.trend_label(fc['predicted_price'].tolist())
+    return {
+        "model": forecaster._mode,
+        "trend": trend,
+        "predictions": [
+            {"date": d.strftime("%Y-%m-%d"), "price": round(float(p), 2)}
+            for d, p in zip(fc['date'], fc['predicted_price'])
+        ]
+    }
 
 def run_spoilage(crop: str, storage: str, harvest_date: str, avg_temp_c: float, avg_humidity: float) -> Dict:
     try:
@@ -427,7 +406,7 @@ def run_spoilage(crop: str, storage: str, harvest_date: str, avg_temp_c: float, 
 
 def run_sentiment(headlines: List[str], use_gemini: bool = False) -> Dict:
     try:
-        model = make_gemini_client() if use_gemini else None
+        model = make_gemini_client() if use_gemini and os.getenv("GEMINI_API_KEY") else None
         score = sentiment_from_headlines(headlines, use_gemini=use_gemini, model=model)
         return {"sentiment_score": round(float(score), 3)}
     except Exception as e:
@@ -463,33 +442,3 @@ def run_recommendation(
         "reasoning": rec.reasoning,
         "alternatives": rec.alternatives
     }
-
-def llm_explain_to_user(
-    inputs: Dict,
-    intermediate: Dict,
-    output: Dict,
-    language_hint: str = "hi-en"  # mixed Hinglish; set 'hi' or 'en'
-) -> str:
-    """
-    Uses Gemini to produce a farmer-friendly explanation with bullets and a brief caution.
-    """
-    model = make_gemini_client()
-    sys = """
-You are a helpful agri-advisor bot for Indian farmers. Be concise, clear, and friendly.
-Use short sentences and bullet points. Add a 1-line caution on uncertainty.
-If language_hint = 'hi', reply in Hindi; if 'en', reply in English; if 'hi-en', reply in simple Hinglish.
-Include: best date, expected price, mandi, 2–3 reasons, and 1 alternative option.
-"""
-    user = f"""
-language_hint={language_hint}
-
-USER_INPUTS:
-{json.dumps(inputs, ensure_ascii=False, indent=2)}
-
-INTERMEDIATE_STATE:
-{json.dumps(intermediate, ensure_ascii=False, indent=2)}
-
-MODEL_OUTPUT:
-{json.dumps(output, ensure_ascii=False, indent=2)}
-"""
-    return gemini_text(model, sys, user)
